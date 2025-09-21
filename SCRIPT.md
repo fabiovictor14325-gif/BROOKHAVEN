@@ -6,11 +6,11 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Criar ScreenGui
+-- ScreenGui
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
 ScreenGui.ResetOnSpawn = false
 
--- Helper criar elementos
+-- Helper
 local function create(class, props)
     local obj = Instance.new(class)
     for i,v in pairs(props) do obj[i]=v end
@@ -36,7 +36,6 @@ create("TextLabel",{Parent=TitleBar, Size=UDim2.new(0.9,0,1,0), Text="Menu Explo
 local MinimizeButton = create("TextButton",{Parent=TitleBar, Size=UDim2.new(0,30,0,30), Position=UDim2.new(0.85,0,0,0), Text="-", BackgroundColor3=Color3.fromRGB(200,50,50), TextColor3=Color3.new(1,1,1)})
 local MaximizeButton = create("TextButton",{Parent=TitleBar, Size=UDim2.new(0,30,0,30), Position=UDim2.new(0.9,0,0,0), Text="+", BackgroundColor3=Color3.fromRGB(50,200,50), TextColor3=Color3.new(1,1,1)})
 
--- Toggle Menu
 local function toggleMenu()
     if MainFrame.Size == UDim2.new(0.7,0,0.7,0) then
         MainFrame:TweenSize(UDim2.new(0,50,0,30),"Out","Quad",0.3,true)
@@ -111,8 +110,9 @@ local flySpeed=50
 local noClipEnabled=false
 local espEnabled=false
 local flyBodyVelocity=nil
+local flyBodyGyro=nil
 
--- Fly funcional
+-- Funções Fly
 local function Fly(active)
     flyEnabled=active
     local char = LocalPlayer.Character
@@ -123,31 +123,34 @@ local function Fly(active)
             flyBodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
             flyBodyVelocity.Velocity = Vector3.new(0,0,0)
             flyBodyVelocity.Parent = hrp
+            flyBodyGyro = Instance.new("BodyGyro")
+            flyBodyGyro.MaxTorque = Vector3.new(1e5,1e5,1e5)
+            flyBodyGyro.CFrame = hrp.CFrame
+            flyBodyGyro.Parent = hrp
         else
             if flyBodyVelocity then flyBodyVelocity:Destroy() end
+            if flyBodyGyro then flyBodyGyro:Destroy() end
         end
     end
 end
 
--- Atualizar velocidade do Fly
 local function FlySpeed(val)
     flySpeed=val
 end
 
--- NoClip funcional
 local function NoClip(active)
     noClipEnabled=active
     local char=LocalPlayer.Character
     if char then
         for _,p in pairs(char:GetDescendants()) do
             if p:IsA("BasePart") then
-                p.CanCollide=not active
+                p.CanCollide = not active
             end
         end
     end
 end
 
--- ESP funcional
+-- Função ESP (apenas players visíveis)
 local function ESP(active)
     espEnabled=active
     for _,plr in pairs(Players:GetPlayers()) do
@@ -167,6 +170,7 @@ local function ESP(active)
                             highlight.Color3 = Color3.fromRGB(255,0,0)
                             highlight.Transparency = 0
                             highlight.AlwaysOnTop = true
+                            highlight.ZIndex = 10
                             highlight.Parent = hrp
                         end
                         if not nameTag then
@@ -176,12 +180,12 @@ local function ESP(active)
                             nameTag.Size = UDim2.new(0,100,0,50)
                             nameTag.StudsOffset = Vector3.new(0,3,0)
                             local txt = Instance.new("TextLabel", nameTag)
-                            txt.Size=UDim2.new(1,0,1,0)
-                            txt.BackgroundTransparency=1
-                            txt.Text=plr.Name
-                            txt.TextColor3=Color3.fromRGB(255,0,0)
-                            txt.TextScaled=true
-                            nameTag.Parent=hrp
+                            txt.Size = UDim2.new(1,0,1,0)
+                            txt.BackgroundTransparency = 1
+                            txt.Text = plr.Name
+                            txt.TextColor3 = Color3.fromRGB(255,0,0)
+                            txt.TextScaled = true
+                            nameTag.Parent = hrp
                         end
                     else
                         if highlight then highlight:Destroy() end
@@ -193,8 +197,8 @@ local function ESP(active)
     end
 end
 
--- Criar tabs separadas
-createTab("Fly", {
+-- Criar tabs
+createTab("FLY", {
     {Name="Ativar Fly", Toggle=true, Function=Fly},
     {Name="Velocidade", Slider=true, Value=50, Function=FlySpeed},
     {Name="No Clip", Toggle=true, Function=NoClip}
@@ -204,20 +208,21 @@ createTab("ESP", {
     {Name="Ativar ESP", Toggle=true, Function=ESP}
 })
 
--- Atualizar Fly continuamente
+-- Fly update
 RunService.RenderStepped:Connect(function()
-    if flyEnabled and flyBodyVelocity then
+    if flyEnabled and flyBodyVelocity and flyBodyGyro then
         local char=LocalPlayer.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
             local hrp=char.HumanoidRootPart
-            local moveDir = Vector3.new()
+            local moveDir=Vector3.new()
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir=moveDir+hrp.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir=moveDir-hrp.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir=moveDir-hrp.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir=moveDir+hrp.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0,1,0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0,1,0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir=moveDir+Vector3.new(0,1,0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir=moveDir-Vector3.new(0,1,0) end
             flyBodyVelocity.Velocity = moveDir.Unit * flySpeed
+            flyBodyGyro.CFrame = CFrame.new(hrp.Position, hrp.Position + hrp.CFrame.LookVector)
         end
     end
 end)
